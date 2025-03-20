@@ -39,6 +39,7 @@ class NomadException(Exception):
 class NomadService:
     client: AsyncClient
     log: Union[LoggerAdapter, Logger]
+    namespace: str
 
     async def create_volume(
         self,
@@ -70,7 +71,7 @@ class NomadService:
 
         create_volume_json = request.dict(exclude_none=True, exclude_unset=True)
         result = await self.client.put(
-            f"/v1/volume/csi/{id}/create",
+            f"/v1/volume/csi/{id}/create?namespace={self.namespace}",
             json=create_volume_json,
         )
         if result.is_error:
@@ -86,7 +87,7 @@ class NomadService:
 
     async def delete_volume(self, id: str):
         result = await self.client.post(
-            f"/v1/volume/csi/{id}/delete",
+            f"/v1/volume/csi/{id}/delete?namespace={self.namespace}",
         )
         if result.is_error:
             raise NomadException(f"Error deleting volume: {result.text}")
@@ -95,7 +96,7 @@ class NomadService:
         self.log.info("Parsing job: %s", job_hcl)
         job_parse_request = JobsParseRequest(JobHCL=job_hcl, Canonicalize=True)
         parsed_job = await self.client.post(
-            "/v1/jobs/parse",
+            f"/v1/jobs/parse?namespace={self.namespace}",
             json=job_parse_request.dict(exclude_none=True, exclude_unset=True),
         )
 
@@ -123,7 +124,7 @@ class NomadService:
         return job_id
 
     async def job_status(self, job_id) -> str:
-        response = await self.client.get(f"/v1/job/{job_id}")
+        response = await self.client.get(f"/v1/job/{job_id}?namespace={self.namespace}")
         if response.is_error:
             raise NomadException(f"Error getting job status: {response.text}")
 
@@ -132,7 +133,7 @@ class NomadService:
 
     async def task_status(self, job_name: str) -> str:
         """Get detailed task status from most recent allocation"""
-        allocs = await self.client.get(f"/v1/job/{job_name}/allocations")
+        allocs = await self.client.get(f"/v1/job/{job_name}/allocations?namespace={self.namespace}")
         if not allocs:
             return "pending"
 
@@ -176,12 +177,12 @@ class NomadService:
 
     async def delete_job(self, job_id: str, purge: Optional[bool] = None):
         params = {"purge": purge} if purge else None
-        response = await self.client.delete(f"/v1/job/{job_id}", params=params)
+        response = await self.client.delete(f"/v1/job/{job_id}?namespace={self.namespace}", params=params)
         if response.is_error:
             raise NomadException(f"Error deleting job: {response.text}")
 
     async def get_service_address(self, service_name: str) -> Tuple[str, int]:
-        response = await self.client.get(f"/v1/service/{service_name}")
+        response = await self.client.get(f"/v1/service/{service_name}?namespace={self.namespace}")
         if response.is_error:
             raise NomadException(f"Error reading service: {response.text}")
 
@@ -193,7 +194,7 @@ class NomadService:
         return str(services[0]["Address"]), int(services[0]["Port"])
 
     async def get_service_of_allocation(self, allocation_id: str) -> Tuple[str, int]:
-        response = await self.client.get(f"/v1/allocation/{allocation_id}")
+        response = await self.client.get(f"/v1/allocation/{allocation_id}?namespace={self.namespace}")
         if response.is_error:
             raise NomadException(f"Error reading allocation: {response.text}")
 

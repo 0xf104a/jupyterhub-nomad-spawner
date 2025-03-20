@@ -287,14 +287,6 @@ class NomadSpawner(Spawner):
             return self._render_name_template()
         raise ValueError("notebook_id is not set")
 
-    @property
-    def job_name_with_ns(self) -> str:
-        """Job name including namespace."""
-        if self.namespace == "default":
-            return f"{self.job_name}"
-        else:
-            return f"{self.job_name}?namespace={self.namespace}"
-
     base_csi_volume_name = Unicode(
         help="""
         The base name of the csi volume. Will be concated with -<notebook_id>
@@ -465,7 +457,7 @@ class NomadSpawner(Spawner):
     async def start(self):
         nomad_service_config = build_nomad_config_from_options(self)
         nomad_httpx_client = build_nomad_httpx_client(nomad_service_config)
-        nomad_service = NomadService(client=nomad_httpx_client, log=self.log)
+        nomad_service = NomadService(client=nomad_httpx_client, log=self.log, namespace=self.namespace)
 
         try:
             notebook_id: str = hashlib.sha1(
@@ -477,7 +469,7 @@ class NomadSpawner(Spawner):
 
             job_hcl = await self.job_factory(nomad_service)
 
-            self.log.info("scheduling job %s", self.job_name_with_ns)
+            self.log.info("scheduling job %s", self.job_name)
             await nomad_service.schedule_job(job_hcl)
             await self._ensure_running(nomad_service=nomad_service)
 
@@ -557,19 +549,19 @@ class NomadSpawner(Spawner):
     async def _ensure_running(self, nomad_service: NomadService):
         while True:
             try:
-                job_status = await nomad_service.job_status(self.job_name_with_ns)
+                job_status = await nomad_service.job_status(self.job_name)
                 if job_status == "dead":
-                    raise Exception(f"Job (name={self.job_name_with_ns}) is dead")
+                    raise Exception(f"Job (name={self.job_name}) is dead")
                 elif job_status == "running":
-                    task_status = await nomad_service.task_status(self.job_name_with_ns)
+                    task_status = await nomad_service.task_status(self.job_name)
                     if task_status == "running":
                         break
                     elif task_status == "dead":
                         raise Exception(f"Task for job (name={self.job_name}) is dead")
                     else:
-                        self.log.info("Task for %s is %s, waiting...", self.job_name_with_ns, task_status)
+                        self.log.info("Task for %s is %s, waiting...", self.job_name, task_status)
                 else:
-                    self.log.info("Job %s is %s, waiting...", self.job_name_with_ns, job_status)
+                    self.log.info("Job %s is %s, waiting...", self.job_name, job_status)
             except Exception as e:
                 self.log.exception("Failed to get job/task status")
                 raise e
@@ -594,14 +586,14 @@ class NomadSpawner(Spawner):
         self, nomad_service: NomadService
     ) -> Tuple[str, int]:
         self.log.info("Getting service %s from nomad", self.service_name)
-        return await nomad_service.get_service_address(self.job_name_with_ns)
+        return await nomad_service.get_service_address(self.job_name)
 
     @retry(wait=wait_fixed(3), stop=stop_after_attempt(5))
     async def address_and_port_of_consul_service_from_nomad(
         self, nomad_service: NomadService
     ) -> Tuple[str, int]:
         self.log.info("Getting allocation id of %s from nomad", self.service_name)
-        allocations = await nomad_service.job_allocations(self.job_name_with_ns)
+        allocations = await nomad_service.job_allocations(self.job_name)
 
         # there should only be one allocation
         return await nomad_service.get_service_of_allocation(
@@ -613,14 +605,14 @@ class NomadSpawner(Spawner):
             build_nomad_config_from_options(self)
         )
 
-        nomad_service = NomadService(client=nomad_httpx_client, log=self.log)
+        nomad_service = NomadService(client=nomad_httpx_client, log=self.log, namespace=self.namespace)
         try:
-            status = await nomad_service.job_status(self.job_name_with_ns)
+            status = await nomad_service.job_status(self.job_name)
 
             running = status == "running"
             if not running:
                 self.log.warning(
-                    "jupyter notebook not running (%s): %s", self.job_name_with_ns, status
+                    "jupyter notebook not running (%s): %s", self.job_name, status
                 )
                 return status
             return None
@@ -634,10 +626,10 @@ class NomadSpawner(Spawner):
     async def stop(self):
         nomad_service_config = build_nomad_config_from_options(self)
         nomad_httpx_client = build_nomad_httpx_client(nomad_service_config)
-        nomad_service = NomadService(client=nomad_httpx_client, log=self.log)
+        nomad_service = NomadService(client=nomad_httpx_client, log=self.log, namespace=self.namespace)
 
         try:
-            await nomad_service.delete_job(self.job_name_with_ns, purge=self.auto_remove_jobs)
+            await nomad_service.delete_job(self.job_name, purge=self.auto_remove_jobs)
             self.clear_state()
         except Exception:
             self.log.exception("Failed to stop")
