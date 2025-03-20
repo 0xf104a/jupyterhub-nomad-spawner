@@ -293,7 +293,7 @@ class NomadSpawner(Spawner):
         if self.namespace == "default":
             return f"{self.job_name}"
         else:
-            return f"{self.job_name}@{self.namespace}"
+            return f"{self.job_name}?namespace={self.namespace}"
 
     base_csi_volume_name = Unicode(
         help="""
