@@ -47,6 +47,7 @@ class JobData(BaseModel):
     args: List = []
     datacenters: List[str] = []
     region: str = "global"
+    namespace: str
 
     image: str = "jupyter/base-notebook:latest"
     memory: int = 512

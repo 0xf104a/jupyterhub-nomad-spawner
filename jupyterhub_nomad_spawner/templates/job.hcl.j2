@@ -2,6 +2,7 @@ job "{{ job_name }}" {
 
     type = "service"
     datacenters = {{ datacenters | tojson}}
+    namespace = "{{ namespace }}"
 
     meta {
         jupyterhub_user = "{{ username }}"
