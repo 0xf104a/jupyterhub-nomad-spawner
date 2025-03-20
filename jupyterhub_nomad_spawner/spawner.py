@@ -400,10 +400,6 @@ class NomadSpawner(Spawner):
     def _default_name_template(self):
         return "{{prefix}}-{{notebookid}}"
 
-    @default("namespace")
-    def _default_namespace(self):
-        return "default"
-
     def _render_name_template(self):
         data = {
             "prefix": self.base_job_name,
