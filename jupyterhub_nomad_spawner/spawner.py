@@ -361,6 +361,10 @@ class NomadSpawner(Spawner):
         """,
     ).tag(config=True)
 
+    namespace = Unicode(help="""
+    The namespace to use in nomad job definition
+    """)
+
     @property
     def csi_volume_name(self) -> str:
         if self.notebook_id:
