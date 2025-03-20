@@ -459,6 +459,7 @@ class NomadSpawner(Spawner):
                 memory=self.user_options["memory"],
                 volume_data=volume_data,
                 policies=policies,
+                namespace=self.namespace,
             ),
             job_template_path=self.job_template_path,
         )
