@@ -1,13 +1,11 @@
 <div class="form-group">
     <label for="image">Image</label>
-    <input class="form-control" id="image" name="image" required list="common_images">
-</div>
-
-<datalist id="common_images">
+    <select class="form-control" id="image" name="image" required>
     {% for item in common_images %}
     <option value="{{ item }}">{{ item }}</option>
     {% endfor %}
-</datalist>
+    </select>
+</div>
 
 <div class="form-group">
     <label for="datacenters">
@@ -19,10 +17,12 @@
         {% endfor %}
     </select>
 </div>
+
 <div class="form-group">
     <label for="memory">Memory</label>
-    <input class="form-control" type="number" id="memory" min="8" name="memory" value="1024" {% if memory_limit %}
-        max="{{ memory_limit }}" {% endif %}>
+    <input class="form-control" type="number" id="memory" min="8" name="memory" value="1024"
+            {% if lite_form %} hidden {% endif %}
+            {% if memory_limit %} max="{{ memory_limit }}" {% endif %}>
 </div>
 
 <div class="radio">
@@ -32,6 +32,7 @@
     </label>
 </div>
 
+{% if not lite_form %}
 <div class="radio">
     <label>
         <input type="radio" name="volume_type" id="volume_type_ephemeral_disk" value="ephemeral_disk">
@@ -50,10 +51,12 @@
         Host Volume
     </label>
 </div>
+{% endif %}
 
 <div class="form-group host-volume">
     <label for="volume_source">Volume Source</label>
-    <input class="form-control" id="volume_source" name="volume_source" value="jupyter">
+    <input class="form-control" id="volume_source" name="volume_source" value="jupyter"
+        {% if lite_form %} hidden {% endif %}>
 </div>
 
 {% if csi_plugin_ids %}
@@ -70,7 +73,8 @@
 
 <div class="form-group volume-destination">
     <label for="volume_destination">Volume Destination</label>
-    <input class="form-control" id="volume_destination" name="volume_destination" value="/home/jovyan/work">
+    <input class="form-control" id="volume_destination" name="volume_destination" {% if lite_form %} hidden {% endif %}
+           value="/home/jovyan/work">
 </div>
 
 

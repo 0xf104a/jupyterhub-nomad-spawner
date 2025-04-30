@@ -235,10 +235,8 @@ class NomadSpawner(Spawner):
     @default("common_images")
     def _default_common_images(self) -> t.List[str]:
         return [
+            "quay.io/jupyter/base-notebook:latest"
             "jupyter/base-notebook",
-            "jupyter/scipy-notebook",
-            "jupyter/datascience-notebook",
-            "jupyter/tensorflow-notebook",
             "jupyter/minimal-notebook",
         ]
 
@@ -356,6 +354,15 @@ class NomadSpawner(Spawner):
     namespace = Unicode(help="""
     The namespace to use in nomad job definition
     """).tag(config=True)
+
+    lite_form = Bool(
+        help="""
+        Show minimal form instead of full one
+        """).tag(config=True)
+
+    @default("lite_form")
+    def _default_lite_form(self):
+        return True
 
     @property
     def csi_volume_name(self) -> str:
@@ -662,6 +669,7 @@ class NomadSpawner(Spawner):
             common_images=self.common_images,
             memory_limit=self.memory_limit_in_mb,
             csi_plugin_ids=self.csi_plugin_ids,
+            lite_form = self.lite_form,
         )
 
     @property
