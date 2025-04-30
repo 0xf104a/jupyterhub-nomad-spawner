@@ -18,14 +18,13 @@
     </select>
 </div>
 
-<div class="form-group">
+<div class="form-group" {% if lite_form %} hidden {% endif %}>
     <label for="memory">Memory</label>
     <input class="form-control" type="number" id="memory" min="8" name="memory" value="1024"
-            {% if lite_form %} hidden {% endif %}
             {% if memory_limit %} max="{{ memory_limit }}" {% endif %}>
 </div>
 
-<div class="radio">
+<div class="radio" {% if lite_form %} hidden {% endif %}>
     <label>
         <input type="radio" name="volume_type" id="volume_type_none" value="" checked>
         None
