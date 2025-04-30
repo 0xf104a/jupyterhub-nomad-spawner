@@ -7,6 +7,7 @@ def create_form(
     common_images: List[str],
     csi_plugin_ids: Optional[List[str]],
     memory_limit: Optional[int] = None,
+    lite_form: bool = False,
 ) -> str:
     env = Environment(
         loader=PackageLoader("jupyterhub_nomad_spawner"), autoescape=select_autoescape()
@@ -18,6 +19,7 @@ def create_form(
         common_images=common_images,
         datacenters=datacenters,
         memory_limit=memory_limit,
+        lite_form=lite_form,
     )
 
     return html
