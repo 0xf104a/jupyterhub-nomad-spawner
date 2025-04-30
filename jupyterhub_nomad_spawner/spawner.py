@@ -235,7 +235,7 @@ class NomadSpawner(Spawner):
     @default("common_images")
     def _default_common_images(self) -> t.List[str]:
         return [
-            "quay.io/jupyter/base-notebook:latest"
+            "quay.io/jupyter/base-notebook:latest",
             "jupyter/base-notebook",
             "jupyter/minimal-notebook",
         ]
