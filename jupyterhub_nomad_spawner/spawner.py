@@ -544,9 +544,6 @@ class NomadSpawner(Spawner):
                 ephemeral_disk_size=self.ephemeral_disk_size,
             )
 
-        if volume_data is None:
-            raise ValueError(f"Unknown volume type: {volume_type}")
-
         return volume_data
 
     def _get_csi_extra_parameters(self) -> Optional[Dict]:
