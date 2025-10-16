@@ -21,7 +21,6 @@ COPY README.md  /opt/jupyterhub-nomad-spawner/
 RUN poetry build -f wheel
 
 
-
 FROM jupyterhub/jupyterhub:5.4.0 AS jupyterhub
 RUN apt update && apt upgrade -y && apt install -y python3-cffi
 RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install --upgrade pip
