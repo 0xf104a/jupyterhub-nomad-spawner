@@ -513,6 +513,7 @@ class NomadSpawner(Spawner):
     async def create_job_volume_data(self, nomad_service: NomadService):
         volume_type = self.user_options["volume_type"]
         self.log.info("Configuring volume of type: %s", volume_type)
+        volume_data: Optional[JobVolumeData] = None
 
         if volume_type == "csi":
             volume_id = self.csi_volume_name
@@ -542,6 +543,9 @@ class NomadSpawner(Spawner):
                 destination=self.user_options["volume_destination"],
                 ephemeral_disk_size=self.ephemeral_disk_size,
             )
+
+        if volume_data is None:
+            raise ValueError(f"Unknown volume type: {volume_type}")
 
         return volume_data
 
