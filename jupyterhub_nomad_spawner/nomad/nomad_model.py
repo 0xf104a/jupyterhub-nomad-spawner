@@ -7,7 +7,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Extra, Field, conint
+from pydantic import RootModel, BaseModel, Extra, Field, conint
 
 
 class ACLPolicy(BaseModel):
@@ -136,8 +136,8 @@ class CSIPluginListStub(BaseModel):
     Provider: Optional[str] = None
 
 
-class CSIPluginType(BaseModel):
-    __root__: str
+class CSIPluginType(RootModel[str]):
+    pass
 
 
 class CSISecrets(BaseModel):
@@ -194,12 +194,12 @@ class CSITopologyRequest(BaseModel):
     Required: Optional[List[CSITopology]] = None
 
 
-class CSIVolumeAccessMode(BaseModel):
-    __root__: str
+class CSIVolumeAccessMode(RootModel[str]):
+    pass
 
 
-class CSIVolumeAttachmentMode(BaseModel):
-    __root__: str
+class CSIVolumeAttachmentMode(RootModel[str]):
+    pass
 
 
 class CSIVolumeCapability(BaseModel):
@@ -299,8 +299,8 @@ class ConsulLinkedService(BaseModel):
     SNI: Optional[str] = None
 
 
-class ConsulMeshConfigEntry(BaseModel):
-    __root__: Any
+class ConsulMeshConfigEntry(RootModel[Any]):
+    pass
 
 
 class ConsulMeshGateway(BaseModel):
@@ -319,8 +319,8 @@ class ConsulUpstream(BaseModel):
     MeshGateway: Optional[ConsulMeshGateway] = None
 
 
-class Context(BaseModel):
-    __root__: str
+class Context(RootModel[str]):
+    pass
 
 
 class DNSConfig(BaseModel):
@@ -417,8 +417,8 @@ class DrainSpec(BaseModel):
     IgnoreSystemJobs: Optional[bool] = None
 
 
-class DrainStatus(BaseModel):
-    __root__: str
+class DrainStatus(RootModel[str]):
+    pass
 
 
 class DrainStrategy(BaseModel):
@@ -436,8 +436,8 @@ class DriverInfo(BaseModel):
     UpdateTime: Optional[datetime] = None
 
 
-class Duration(BaseModel):
-    __root__: int
+class Duration(RootModel[int]):
+    pass
 
 
 class EphemeralDisk(BaseModel):
@@ -802,8 +802,8 @@ class PreemptionConfig(BaseModel):
     SystemSchedulerEnabled: Optional[bool] = None
 
 
-class Quotas(BaseModel):
-    __root__: Any
+class Quotas(RootModel[Any]):
+    pass
 
 
 class RaftServer(BaseModel):
@@ -905,8 +905,8 @@ class ScalingRequest(BaseModel):
     Target: Optional[Dict[str, str]] = None
 
 
-class SchedulerAlgorithm(BaseModel):
-    __root__: str
+class SchedulerAlgorithm(RootModel[str]):
+    pass
 
 
 class SchedulerConfiguration(BaseModel):
@@ -1121,8 +1121,8 @@ class TaskState(BaseModel):
     TaskHandle: Optional[TaskHandle] = None
 
 
-class Time(BaseModel):
-    __root__: datetime
+class Time(RootModel[datetime]):
+    pass
 
 
 class UpdateStrategy(BaseModel):
@@ -1168,44 +1168,44 @@ class WaitConfig(BaseModel):
     Min: Optional[int] = None
 
 
-class Float32(BaseModel):
-    __root__: float
+class Float32(RootModel[float]):
+    pass
 
 
-class Float64(BaseModel):
-    __root__: float
+class Float64(RootModel[float]):
+    pass
 
 
-class Int(BaseModel):
-    __root__: int
+class Int(RootModel[int]):
+    pass
 
 
-class Int8(BaseModel):
-    __root__: conint(ge=-128, le=127)
+class Int8(RootModel[conint(ge=-128, le=127)]):
+    pass
 
 
-class Int32(BaseModel):
-    __root__: int
+class Int32(RootModel[int]):
+    pass
 
 
-class Int64(BaseModel):
-    __root__: int
+class Int64(RootModel[int]):
+    pass
 
 
-class Uint(BaseModel):
-    __root__: conint(ge=0)
+class Uint(RootModel[conint(ge=0)]):
+    pass
 
 
-class Uint8(BaseModel):
-    __root__: conint(ge=0, le=255)
+class Uint8(RootModel[conint(ge=0, le=255)]):
+    pass
 
 
-class Uint16(BaseModel):
-    __root__: conint(ge=0, le=65535)
+class Uint16(RootModel[conint(ge=0, le=65535)]):
+    pass
 
 
-class Uint64(BaseModel):
-    __root__: conint(ge=0, le=18446744073709551616)
+class Uint64(RootModel[conint(ge=0, le=18446744073709551616)]):
+    pass
 
 
 class CSINodeInfo(BaseModel):
