@@ -19,6 +19,7 @@ from traitlets import List as TList
 from traitlets import Unicode
 from traitlets import Union as TUnion
 from traitlets import default
+from typing_extensions import TypeVar
 
 from jupyterhub_nomad_spawner.consul.consul_service import (
     ConsulService,
@@ -39,7 +40,7 @@ from jupyterhub_nomad_spawner.nomad.nomad_service import (
 )
 
 RFC_1123_2_1_NAME_PATTERN = re.compile("^[a-z0-9\-]+$")
-
+T = TypeVar("T")
 
 class CreateJobResponse(BaseModel):
     EvalCreateIndex: int
@@ -424,6 +425,12 @@ class NomadSpawner(Spawner):
 
         return job_name_default
 
+    @staticmethod
+    def clear_params(param: T | t.List[T]) ->T:
+        if isinstance(param, list):
+            return param[0]
+        return param
+
     async def job_factory(self, nomad_service) -> str:
         """Factory for the nomad jobs to spawn.
 
@@ -449,9 +456,9 @@ class NomadSpawner(Spawner):
                 service_name=self.service_name,
                 env=self.get_env(),
                 args=self.get_args(),
-                image=self.user_options["image"],
+                image=self.clear_params(self.user_options["image"]),
                 datacenters=self.user_options["datacenters"],
-                memory=self.user_options["memory"],
+                memory=int(self.clear_params(self.user_options["memory"])),
                 volume_data=volume_data,
                 policies=policies,
                 namespace=self.namespace,
