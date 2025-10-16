@@ -755,7 +755,7 @@ def build_nomad_httpx_client(config: NomadServiceConfig) -> AsyncClient:
         else:
             verify = False
     client = AsyncClient(
-        base_url=config.nomad_addr,
+        base_url=str(config.nomad_addr),
         verify=verify,
         cert=cert,
         headers={"X-Nomad-Token": config.nomad_token} if config.nomad_token else None,
@@ -780,7 +780,7 @@ def build_consul_httpx_client(config: ConsulServiceConfig) -> AsyncClient:
         else:
             verify = False
     client = AsyncClient(
-        base_url=config.consul_http_addr,
+        base_url=str(config.consul_http_addr),
         verify=verify,
         cert=cert,
         headers={"X-Consul-Token": config.consul_http_token}
