@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jupyterhub-nomad-spawner"
-version = "0.0.0"
+version = "0.1.0"
 description = "A JupyterHub Spawner that launches isolated notebooks as job"
 authors = ["Max Fröhlich <maxbruchmann@gmail.com>"]
 readme = "README.md"
@@ -10,26 +10,27 @@ packages = [
 
 
 [tool.poetry.dependencies]
-python = "~3.10"
-traitlets = "^5.1.1"
-jupyterhub = "^4.0.1"
+python = "==3.12.3"
+traitlets = ">=5.1.1"
+jupyterhub = ">=5.4.0"
 #notebook = "^6.4.11"
-pydantic = "^1.9.0"
-tenacity = "^8.0.1"
-httpx = "^0.24.0"
-attrs = "^23.1.0"
-Jinja2 = "^3.1.2"
+pydantic = ">=1.9.0"
+tenacity = ">=8.0.1"
+httpx = ">=0.24.0"
+attrs = ">=23.1.0"
+Jinja2 = ">=3.1.2"
+greenlet = "==3.2.4"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.1"
-black = "^23.3.0"
-flake8 = "^6.0.0"
-pytest-asyncio = "^0.21.0"
-requests = "^2.27.1"
-poethepoet = "^0.19.0"
-mypy = "^1.2.0"
-respx = "^0.20.1"
-datamodel-code-generator = "^0.18.0"
+pytest = ">=7.1"
+black = ">=23.3.0"
+flake8 = ">=6.0.0"
+#pytest-asyncio = ">=0.21.0"
+requests = ">=2.27.1"
+poethepoet = ">=0.19.0"
+mypy = ">=1.2.0"
+respx = ">=0.20.1"
+datamodel-code-generator = ">=0.18.0"
 
 [build-system]
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
@@ -60,4 +61,4 @@ markers = [
 ]
 
 [tool.poetry-dynamic-versioning]
-enable = true
+enable = false
