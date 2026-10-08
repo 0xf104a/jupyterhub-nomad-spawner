@@ -1,8 +1,11 @@
 import logging
+from pathlib import Path
 
 from jupyterhub_nomad_spawner.job_options_factory import create_form
 
 log = logging.getLogger(__name__)
+
+FIXTURE = Path(__file__).parent / "fixtures" / "test_create_form.html"
 
 
 def test_create_form(update_job_options_fixtures):
@@ -14,12 +17,26 @@ def test_create_form(update_job_options_fixtures):
 
     if update_job_options_fixtures:
         log.warning("Updating job options fixtures")
-        with open("tests/fixtures/test_create_form.html", "w") as f:
-            f.write(html)
-            f.close()
+        FIXTURE.write_text(html)
 
     # compare html against fixture
-    with open("tests/fixtures/test_create_form.html", "r") as f:
-        fixture = f.read()
-        f.close()
-    assert html == fixture
+    assert html == FIXTURE.read_text()
+
+
+def test_create_form_lite():
+    html = create_form(["dc1"], ["image1"], ["csi1"], 512, lite_form=True)
+
+    # the lite form hides everything but image and datacenters ...
+    assert 'name="image"' in html
+    assert 'name="datacenters"' in html
+    assert 'id="volume_type_csi"' not in html
+    assert 'id="volume_type_host"' not in html
+    # ... and still submits a memory value that respects the limit
+    assert 'name="memory" min="8"\n           value="512"' in html
+
+
+def test_create_form_without_csi_plugins():
+    html = create_form(["dc1"], ["image1"], None)
+
+    assert 'name="volume_csi_plugin_id"' not in html
+    assert "max=" not in html

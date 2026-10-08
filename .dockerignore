@@ -1,1 +1,11 @@
 **/__pycache__/
+.git/
+.github/
+.idea/
+.junie/
+.venv/
+.mypy_cache/
+.pytest_cache/
+dist/
+example/
+tests/

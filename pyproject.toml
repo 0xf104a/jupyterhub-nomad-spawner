@@ -1,64 +1,96 @@
-[tool.poetry]
+[project]
 name = "jupyterhub-nomad-spawner"
 version = "0.1.0"
-description = "A JupyterHub Spawner that launches isolated notebooks as job"
-authors = ["Max Fröhlich <maxbruchmann@gmail.com>"]
+description = "A JupyterHub Spawner that launches isolated notebook servers as Nomad jobs"
+authors = [{ name = "Max Fröhlich", email = "maxbruchmann@gmail.com" }]
 readme = "README.md"
-packages = [
-    { include = "jupyterhub_nomad_spawner" },
+license = "MPL-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Jupyter",
+    "Intended Audience :: System Administrators",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+    "jupyterhub>=6.0.0",
+    "traitlets>=5.14.0",
+    "pydantic>=2.10.0",
+    "tenacity>=9.0.0",
+    "httpx>=0.28.0",
+    "attrs>=24.2.0",
+    "jinja2>=3.1.4",
 ]
 
+[project.entry-points."jupyterhub.spawners"]
+nomad-spawner = "jupyterhub_nomad_spawner.spawner:NomadSpawner"
 
-[tool.poetry.dependencies]
-python = "==3.12.3"
-traitlets = ">=5.1.1"
-jupyterhub = ">=5.4.0"
-#notebook = "^6.4.11"
-pydantic = ">=1.9.0"
-tenacity = ">=8.0.1"
-httpx = ">=0.24.0"
-attrs = ">=23.1.0"
-Jinja2 = ">=3.1.2"
-greenlet = "==3.2.4"
+[tool.poetry]
+packages = [{ include = "jupyterhub_nomad_spawner" }]
+requires-poetry = ">=2.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = ">=7.1"
-black = ">=23.3.0"
-flake8 = ">=6.0.0"
-#pytest-asyncio = ">=0.21.0"
-requests = ">=2.27.1"
-poethepoet = ">=0.19.0"
-mypy = ">=1.2.0"
-respx = ">=0.20.1"
-datamodel-code-generator = ">=0.18.0"
+pytest = ">=9.0"
+pytest-asyncio = ">=1.3"
+respx = ">=0.23"
+requests = ">=2.32"
+black = ">=26.1"
+isort = ">=6.0"
+flake8 = ">=7.3"
+mypy = ">=1.18"
+poethepoet = ">=0.40"
+datamodel-code-generator = ">=0.80"
 
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning"]
-build-backend = "poetry_dynamic_versioning.backend"
-
-
-[tool.poetry.plugins."jupyterhub.spawners"]
-"nomad-spawner" = "jupyterhub_nomad_spawner.spawner:NomadSpawner"
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poe.tasks]
-gen-nomad-model = "datamodel-codegen --input-file-type yaml --url https://raw.githubusercontent.com/hashicorp/nomad-openapi/main/v1/openapi.yaml --output jupyterhub_nomad_spawner/nomad/nomad_model.py"
-format = "black ."
+# The Nomad OpenAPI project (hashicorp/nomad-openapi) is archived, but the
+# published v1 spec still matches the endpoints used by this spawner.
+gen-nomad-model = """
+datamodel-codegen
+  --url https://raw.githubusercontent.com/hashicorp/nomad-openapi/main/v1/openapi.yaml
+  --input-file-type openapi
+  --output-model-type pydantic_v2.BaseModel
+  --target-python-version 3.10
+  --use-annotated
+  --field-constraints
+  --disable-timestamp
+  --formatters black isort
+  --output jupyterhub_nomad_spawner/nomad/nomad_model.py
+"""
+format = ["_black", "_isort"]
+_black = "black ."
+_isort = "isort ."
 mypy = "mypy ."
 flake8 = "flake8 ."
-check = ["format", "mypy", "flake8"]
-
+test = "pytest"
+check = ["format", "mypy", "flake8", "test"]
 
 [tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
 exclude = [
     "^jupyterhub_nomad_spawner/nomad/nomad_model\\.py$",
+    "^example/",
+    "^\\.venv/",
 ]
+
 [tool.isort]
 profile = "black"
+known_first_party = ["jupyterhub_nomad_spawner"]
+skip_gitignore = true
+
+[tool.black]
+extend-exclude = "^/jupyterhub_nomad_spawner/nomad/nomad_model\\.py$"
 
 [tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"
 markers = [
-    "integration: Run the integration tests."
+    "integration: Run the integration tests.",
 ]
-
-[tool.poetry-dynamic-versioning]
-enable = false

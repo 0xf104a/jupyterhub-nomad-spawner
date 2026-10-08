@@ -2,7 +2,7 @@
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
     -   id: trailing-whitespace
         exclude: "tests/fixtures/"
@@ -10,20 +10,20 @@ repos:
         exclude: "tests/fixtures/"
     -   id: check-yaml
     -   id: check-added-large-files
--   repo: https://github.com/psf/black.git
-    rev: "23.3.0"
+-   repo: https://github.com/psf/black
+    rev: "26.10.0"
     hooks:
     -   id: black
 -   repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: "9.0.2"
     hooks:
       - id: isort
         name: isort (python)
 -   repo: https://github.com/pycqa/flake8
-    rev: '6.0.0'  # pick a git hash / tag to point to
+    rev: "7.4.1"
     hooks:
     -   id: flake8
 -   repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.5.2
+    rev: v4.19.2
     hooks:
     -   id: commitizen

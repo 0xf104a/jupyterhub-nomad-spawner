@@ -18,7 +18,7 @@ job "hub" {
             driver = "docker"
 
             config {
-                image = "jupyterhub/jupyterhub:2"
+                image = "quay.io/jupyterhub/jupyterhub:6"
 
                 args = [
                         "jupyterhub",
@@ -46,7 +46,16 @@ c.JupyterHub.log_level = "DEBUG"
 c.ConfigurableHTTPProxy.debug = True
 c.JupyterHub.authenticator_class = 'dummy'
 c.JupyterHub.services = [
-    {"name": "test", "admin": True, "api_token": "test-secret-token"},
+    {"name": "test", "api_token": "test-secret-token"},
+]
+# the service `admin` flag is deprecated since JupyterHub 2.0, grant the
+# scopes the integration tests need via a role instead
+c.JupyterHub.load_roles = [
+    {
+        "name": "test",
+        "scopes": ["admin:users", "admin:servers"],
+        "services": ["test"],
+    },
 ]
                 EOF
 

@@ -1,10 +1,10 @@
 from logging import Logger, LoggerAdapter
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from attrs import define
 from httpx import AsyncClient
-from pydantic import AnyHttpUrl, BaseModel, parse_obj_as
+from pydantic import AnyHttpUrl, BaseModel
 
 from jupyterhub_nomad_spawner.nomad.nomad_model import (
     CSIVolume,
@@ -16,30 +16,33 @@ from jupyterhub_nomad_spawner.nomad.nomad_model import (
 
 
 class NomadTLSConfig(BaseModel):
-    ca_cert: Optional[Path]
-    ca_path: Optional[Path]
+    ca_cert: Optional[Path] = None
+    ca_path: Optional[Path] = None
     client_cert: Path
     client_key: Path
     skip_verify: bool = False
-    tls_server_name: Optional[str]
+    tls_server_name: Optional[str] = None
 
 
 class NomadServiceConfig(BaseModel):
-    nomad_addr: AnyHttpUrl = parse_obj_as(AnyHttpUrl, "http://localhost:4646")
-    nomad_token: Optional[str]
+    nomad_addr: AnyHttpUrl = AnyHttpUrl("http://localhost:4646")
+    nomad_token: Optional[str] = None
     tls_config: Optional[NomadTLSConfig] = None
 
 
 class NomadException(Exception):
-    def __init__(self, *args: object) -> None:
-        super().__init__(*args)
+    pass
 
 
 @define
 class NomadService:
     client: AsyncClient
     log: Union[LoggerAdapter, Logger]
-    namespace: str
+    namespace: str = "default"
+
+    @property
+    def _namespace_params(self) -> Dict[str, str]:
+        return {"namespace": self.namespace}
 
     async def create_volume(
         self,
@@ -47,7 +50,7 @@ class NomadService:
         plugin_id: str,
         parameters: Optional[Dict[str, str]] = None,
         min_size: Optional[int] = None,
-    ):
+    ) -> None:
         request = CSIVolumeCreateRequest(
             Volumes=[
                 CSIVolume(
@@ -69,9 +72,10 @@ class NomadService:
             ]
         )
 
-        create_volume_json = request.dict(exclude_none=True, exclude_unset=True)
+        create_volume_json = request.model_dump(exclude_none=True, exclude_unset=True)
         result = await self.client.put(
-            f"/v1/volume/csi/{id}/create?namespace={self.namespace}",
+            f"/v1/volume/csi/{id}/create",
+            params=self._namespace_params,
             json=create_volume_json,
         )
         if result.is_error:
@@ -85,19 +89,21 @@ class NomadService:
                 )
         self.log.info("Created volume (status code: %d)", result.status_code)
 
-    async def delete_volume(self, id: str):
+    async def delete_volume(self, id: str) -> None:
         result = await self.client.post(
-            f"/v1/volume/csi/{id}/delete?namespace={self.namespace}",
+            f"/v1/volume/csi/{id}/delete",
+            params=self._namespace_params,
         )
         if result.is_error:
             raise NomadException(f"Error deleting volume: {result.text}")
 
-    async def schedule_job(self, job_hcl: str) -> Tuple[str, str]:
+    async def schedule_job(self, job_hcl: str) -> str:
         self.log.info("Parsing job: %s", job_hcl)
         job_parse_request = JobsParseRequest(JobHCL=job_hcl, Canonicalize=True)
         parsed_job = await self.client.post(
-            f"/v1/jobs/parse?namespace={self.namespace}",
-            json=job_parse_request.dict(exclude_none=True, exclude_unset=True),
+            "/v1/jobs/parse",
+            params=self._namespace_params,
+            json=job_parse_request.model_dump(exclude_none=True, exclude_unset=True),
         )
 
         if parsed_job.is_error:
@@ -105,7 +111,7 @@ class NomadService:
 
         parsed_job_as_dict = parsed_job.json()
         self.log.info("Got parsed job %s", parsed_job_as_dict)
-        job_id = parsed_job_as_dict["ID"]
+        job_id: str = parsed_job_as_dict["ID"]
 
         register_job_as_dict = {
             "EnforceIndex": False,
@@ -123,8 +129,10 @@ class NomadService:
 
         return job_id
 
-    async def job_status(self, job_id) -> str:
-        response = await self.client.get(f"/v1/job/{job_id}?namespace={self.namespace}")
+    async def job_status(self, job_id: str) -> str:
+        response = await self.client.get(
+            f"/v1/job/{job_id}", params=self._namespace_params
+        )
         if response.is_error:
             raise NomadException(f"Error getting job status: {response.text}")
 
@@ -133,17 +141,16 @@ class NomadService:
 
     async def task_status(self, job_name: str) -> str:
         """Get detailed task status from most recent allocation"""
-        allocs = await self.client.get(f"/v1/job/{job_name}/allocations?namespace={self.namespace}")
+        allocs = await self.job_allocations(job_name)
         if not allocs:
             return "pending"
 
-        allocs = allocs.json()
         latest_alloc = max(allocs, key=lambda x: x["CreateTime"])
-        if not latest_alloc:
-            return "pending"
 
-        task_states = latest_alloc.get("TaskStates", {}) or {}
-        task_states = {name: TaskState(**state) for name, state in task_states.items()}
+        task_states = {
+            name: TaskState(**state)
+            for name, state in (latest_alloc.get("TaskStates") or {}).items()
+        }
 
         if not task_states:
             return "pending"
@@ -167,22 +174,28 @@ class NomadService:
             return "starting"
         return "pending"
 
-    async def job_allocations(self, job_id) -> list[dict[str, Any]]:
-        response = await self.client.get(f"/v1/job/{job_id}/allocations")
+    async def job_allocations(self, job_id: str) -> List[Dict[str, Any]]:
+        response = await self.client.get(
+            f"/v1/job/{job_id}/allocations", params=self._namespace_params
+        )
         if response.is_error:
             raise NomadException(f"Error getting job allocations: {response.text}")
 
-        allocations = response.json()
+        allocations: List[Dict[str, Any]] = response.json()
         return allocations
 
-    async def delete_job(self, job_id: str, purge: Optional[bool] = None):
-        params = {"purge": purge} if purge else None
-        response = await self.client.delete(f"/v1/job/{job_id}?namespace={self.namespace}", params=params)
+    async def delete_job(self, job_id: str, purge: Optional[bool] = None) -> None:
+        params = dict(self._namespace_params)
+        if purge:
+            params["purge"] = "true"
+        response = await self.client.delete(f"/v1/job/{job_id}", params=params)
         if response.is_error:
             raise NomadException(f"Error deleting job: {response.text}")
 
     async def get_service_address(self, service_name: str) -> Tuple[str, int]:
-        response = await self.client.get(f"/v1/service/{service_name}?namespace={self.namespace}")
+        response = await self.client.get(
+            f"/v1/service/{service_name}", params=self._namespace_params
+        )
         if response.is_error:
             raise NomadException(f"Error reading service: {response.text}")
 
@@ -194,7 +207,9 @@ class NomadService:
         return str(services[0]["Address"]), int(services[0]["Port"])
 
     async def get_service_of_allocation(self, allocation_id: str) -> Tuple[str, int]:
-        response = await self.client.get(f"/v1/allocation/{allocation_id}?namespace={self.namespace}")
+        response = await self.client.get(
+            f"/v1/allocation/{allocation_id}", params=self._namespace_params
+        )
         if response.is_error:
             raise NomadException(f"Error reading allocation: {response.text}")
 

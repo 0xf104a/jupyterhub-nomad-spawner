@@ -23,7 +23,7 @@ c.NomadSpawner.datacenters = ["dc1", "dc2", "dc3"]
 c.NomadSpawner.csi_plugin_ids = ["nfs", "hostpath-plugin0"]
 c.NomadSpawner.mem_limit = "2G"
 
-c.NomadSpawner.common_images = ["jupyter/minimal-notebook:2023-06-26"]
+c.NomadSpawner.common_images = ["quay.io/jupyter/minimal-notebook:2026-10-05"]
 
 
 def csi_volume_parameters(spawner):

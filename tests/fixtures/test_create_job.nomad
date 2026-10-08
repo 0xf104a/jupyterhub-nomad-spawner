@@ -2,6 +2,7 @@ job "jupyter-notebook-123" {
 
     type = "service"
     datacenters = ["dc1", "dc2"]
+    namespace = "default"
 
     meta {
         jupyterhub_user = "myname"
@@ -23,7 +24,7 @@ job "jupyter-notebook-123" {
             driver = "docker"
 
             config {
-                image = "jupyter/minimal-notebook"
+                image = "quay.io/jupyter/minimal-notebook"
                 ports = [ "notebook" ]
 
                 args = ["--arg1", "--arg2"]

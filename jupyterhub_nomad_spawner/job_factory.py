@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 from jinja2 import (
     BaseLoader,
@@ -9,7 +9,7 @@ from jinja2 import (
     PackageLoader,
     select_autoescape,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class VolumeType(str, Enum):
@@ -19,6 +19,8 @@ class VolumeType(str, Enum):
 
 
 class JobVolumeData(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     type: VolumeType
     source: str = "jupyter"
 
@@ -27,9 +29,6 @@ class JobVolumeData(BaseModel):
 
     ephemeral_disk_size: Optional[int] = None
 
-    class Config:
-        use_enum_values = True
-
 
 class ServiceProvider(str, Enum):
     consul = "consul"
@@ -37,27 +36,26 @@ class ServiceProvider(str, Enum):
 
 
 class JobData(BaseModel):
+    model_config = ConfigDict(use_enum_values=True)
+
     job_name: str
     username: str
     notebook_name: Optional[str] = None
 
     service_provider: ServiceProvider
     service_name: str
-    env: Dict = {}
-    args: List = []
+    env: Dict[str, Any] = {}
+    args: List[str] = []
     datacenters: List[str] = []
     region: str = "global"
-    namespace: str
+    namespace: str = "default"
 
-    image: str = "jupyter/base-notebook:latest"
+    image: str = "quay.io/jupyter/base-notebook:latest"
     memory: int = 512
     cpu: int = 100
 
-    volume_data: Optional[JobVolumeData]
-    policies: Optional[List[str]]
-
-    class Config:
-        use_enum_values = True
+    volume_data: Optional[JobVolumeData] = None
+    policies: Optional[List[str]] = None
 
 
 def create_job(job_data: JobData, job_template_path: Optional[str] = None) -> str:
@@ -75,12 +73,12 @@ def create_job(job_data: JobData, job_template_path: Optional[str] = None) -> st
     env = Environment(loader=loader, autoescape=select_autoescape())
 
     template = env.get_template(template_name)
-    job_hcl = template.render(**job_data.dict())
+    job_hcl = template.render(**job_data.model_dump())
 
     return job_hcl
 
 
-def create_job_name(jinja_template: str, data: dict[str, Any]) -> str:
+def create_job_name(jinja_template: str, data: Dict[str, Any]) -> str:
     env = Environment(autoescape=select_autoescape())
     template = env.from_string(jinja_template)
 

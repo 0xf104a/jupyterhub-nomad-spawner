@@ -1,29 +1,30 @@
-# syntax=docker/dockerfile:1.4
-FROM jupyterhub/jupyterhub:5.4.0 as builder
+# syntax=docker/dockerfile:1
+ARG JUPYTERHUB_VERSION=6.0.1
 
-RUN apt update && apt upgrade -y && apt install -y git python3-venv python3-dev build-essential autoconf libtool pkg-config libffi-dev python3-cffi
-RUN curl -sSL https://install.python-poetry.org | python3 -
-ENV PATH "/root/.local/bin/:$PATH"
-RUN poetry config virtualenvs.create false
-
-RUN mkdir -p /opt/jupyterhub-nomad-spawner/jupyterhub_nomad_spawner
-
-COPY poetry.lock pyproject.toml /opt/jupyterhub-nomad-spawner/
-RUN touch /opt/jupyterhub-nomad-spawner/jupyterhub_nomad_spawner/__init__.py /opt/jupyterhub-nomad-spawner/README.md
-
+FROM quay.io/jupyterhub/jupyterhub:${JUPYTERHUB_VERSION} AS builder
 
 WORKDIR /opt/jupyterhub-nomad-spawner
-RUN poetry lock
-RUN --mount=type=cache,target=/root/.cache/pypoetry --mount=type=cache,target=/root/.cache/pip poetry install --only main -n -vv
-COPY jupyterhub_nomad_spawner /opt/jupyterhub-nomad-spawner/jupyterhub_nomad_spawner
-COPY README.md  /opt/jupyterhub-nomad-spawner/
 
-RUN poetry build -f wheel
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install --upgrade pip build
+
+COPY pyproject.toml README.md LICENSE ./
+COPY jupyterhub_nomad_spawner ./jupyterhub_nomad_spawner
+
+# pure python wheel; the build backend (poetry-core) is fetched by `build`
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m build --wheel --outdir dist
 
 
-FROM jupyterhub/jupyterhub:5.4.0 AS jupyterhub
-RUN apt update && apt upgrade -y && apt install -y python3-cffi
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip install --upgrade pip
-RUN --mount=type=cache,target=/root/.cache/pip python3 -m pip -v install oauthenticator
+FROM quay.io/jupyterhub/jupyterhub:${JUPYTERHUB_VERSION} AS jupyterhub
 
-RUN --mount=type=bind,target=/opt/jupyterhub-nomad-spawner/dist/,source=/opt/jupyterhub-nomad-spawner/dist/,from=builder --mount=type=cache,target=/root/.cache/pip python3 -m pip -v install /opt/jupyterhub-nomad-spawner/dist/*.whl
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install --upgrade pip
+
+RUN --mount=type=bind,from=builder,source=/opt/jupyterhub-nomad-spawner/dist,target=/tmp/dist \
+    --mount=type=cache,target=/root/.cache/pip \
+    python3 -m pip install oauthenticator /tmp/dist/*.whl

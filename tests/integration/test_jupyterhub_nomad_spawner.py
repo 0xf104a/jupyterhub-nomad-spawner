@@ -40,7 +40,7 @@ async def test_spawn_start(config, hub, hub_serivce):
         oauth_client_id="unused",
     )
     options = {}
-    options["image"] = "jupyter/minimal-notebook:2022-07-27"
+    options["image"] = "quay.io/jupyter/minimal-notebook:2026-10-05"
     options["datacenters"] = ["dc1"]
     options["memory"] = 512
     options["volume_type"] = None

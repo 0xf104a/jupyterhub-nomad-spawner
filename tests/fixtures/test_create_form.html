@@ -1,104 +1,99 @@
-<div class="form-group">
-    <label for="image">Image</label>
-    <input class="form-control" id="image" name="image" required list="common_images">
-</div>
-
-<datalist id="common_images">
+<div class="mb-3">
+    <label class="form-label" for="image">Image</label>
+    <select class="form-select" id="image" name="image" required>
     
     <option value="common_image1">common_image1</option>
     
     <option value="common_image2">common_image2</option>
     
-</datalist>
+    </select>
+</div>
 
-<div class="form-group">
-    <label for="datacenters">
-        Datacenters
-    </label>
-    <select class="form-control" id="datacenters" name="datacenters" multiple="true" required>
+<div class="mb-3">
+    <label class="form-label" for="datacenters">Datacenters</label>
+    <select class="form-select" id="datacenters" name="datacenters" multiple required>
         
-        <option value="dc1"  selected >dc1</option>
+        <option value="dc1" selected>dc1</option>
         
-        <option value="dc2" >dc2</option>
+        <option value="dc2">dc2</option>
         
     </select>
 </div>
-<div class="form-group">
-    <label for="memory">Memory</label>
-    <input class="form-control" type="number" id="memory" min="8" name="memory" value="1024" 
-        max="1024" >
+
+<div class="mb-3">
+    <label class="form-label" for="memory">Memory (MB)</label>
+    <input class="form-control" type="number" id="memory" name="memory" min="8"
+           value="1024"
+           max="1024">
 </div>
 
-<div class="radio">
-    <label>
-        <input type="radio" name="volume_type" id="volume_type_none" value="" checked>
-        None
-    </label>
-</div>
+<fieldset class="mb-3">
+    <legend class="form-label">Volume</legend>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="volume_type" id="volume_type_none" value="" checked>
+        <label class="form-check-label" for="volume_type_none">None</label>
+    </div>
+    
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="volume_type" id="volume_type_ephemeral_disk" value="ephemeral_disk">
+        <label class="form-check-label" for="volume_type_ephemeral_disk">Ephemeral Disk</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="volume_type" id="volume_type_csi" value="csi">
+        <label class="form-check-label" for="volume_type_csi">CSI Volume</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="volume_type" id="volume_type_host" value="host">
+        <label class="form-check-label" for="volume_type_host">Host Volume</label>
+    </div>
+    
+</fieldset>
 
-<div class="radio">
-    <label>
-        <input type="radio" name="volume_type" id="volume_type_ephemeral_disk" value="ephemeral_disk">
-        Ephermeral Disk
-    </label>
-</div>
-<div class="radio">
-    <label>
-        <input type="radio" name="volume_type" id="volume_type_csi" value="csi">
-        CSI Volume
-    </label>
-</div>
-<div class="radio">
-    <label>
-        <input type="radio" name="volume_type" id="volume_type_host" value="host">
-        Host Volume
-    </label>
-</div>
-
-<div class="form-group host-volume">
-    <label for="volume_source">Volume Source</label>
+<div class="mb-3 host-volume" hidden>
+    <label class="form-label" for="volume_source">Volume Source</label>
     <input class="form-control" id="volume_source" name="volume_source" value="jupyter">
 </div>
 
 
-<div class="form-group csi-volume">
-    <label for="volume_csi_plugin_id">Volume CSI Plugin ID</label>
-    <select class="form-control" id="volume_csi_plugin_id" name="volume_csi_plugin_id">
+<div class="mb-3 csi-volume" hidden>
+    <label class="form-label" for="volume_csi_plugin_id">Volume CSI Plugin ID</label>
+    <select class="form-select" id="volume_csi_plugin_id" name="volume_csi_plugin_id">
         
-        <option value="csi_plugin_id1"  selected >csi_plugin_id1</option>
+        <option value="csi_plugin_id1" selected>csi_plugin_id1</option>
         
-        <option value="csi_plugin_id2" >csi_plugin_id2</option>
+        <option value="csi_plugin_id2">csi_plugin_id2</option>
         
     </select>
 </div>
 
 
-
-<div class="form-group volume-destination">
-    <label for="volume_destination">Volume Destination</label>
+<div class="mb-3 volume-destination" hidden>
+    <label class="form-label" for="volume_destination">Volume Destination</label>
     <input class="form-control" id="volume_destination" name="volume_destination" value="/home/jovyan/work">
 </div>
 
-
 <script>
-+(function () {
-	jQuery(function($){
-        function handleType(type){
-            $(".host-volume").toggle(type == "host")
-            $(".csi-volume").toggle(type == "csi")
-            $(".volume-destination").toggle(!!type)
-
-            $(".csi-volume :input").prop("disable",type == "host")
-            $(".host-volume :input").prop("disable", type == "host")
-            $(".volume-destination :input").prop("disable", !type)
-        }
-        $("input[name=volume_type]").on("change", function(){
-            var type = $(this).val();
-            handleType(type)
+(function () {
+    function handleVolumeType(type) {
+        document.querySelectorAll(".host-volume").forEach(function (el) {
+            el.hidden = type !== "host";
         });
+        document.querySelectorAll(".csi-volume").forEach(function (el) {
+            el.hidden = type !== "csi";
+        });
+        document.querySelectorAll(".volume-destination").forEach(function (el) {
+            el.hidden = !type;
+        });
+    }
 
-        var type = $("input[name=volume_type]").val();
-        handleType(type);
+    var radios = document.querySelectorAll("input[name=volume_type]");
+    radios.forEach(function (radio) {
+        radio.addEventListener("change", function () {
+            handleVolumeType(radio.value);
+        });
     });
-}());
+
+    var checked = document.querySelector("input[name=volume_type]:checked");
+    handleVolumeType(checked ? checked.value : "");
+})();
 </script>

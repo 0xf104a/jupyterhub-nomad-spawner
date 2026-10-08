@@ -3,13 +3,19 @@
 > [!WARNING]
 > This project is currently in beta
 
-A Jupyterhub plugin to spawn single-user notebook servers via [Nomad](https://www.nomadproject.io/). The project provides templates to allow users to influence how their servers are spawned (see the [showcase](#-show-case) and [recipes](#-recipes) for more details.).
+A JupyterHub plugin to spawn single-user notebook servers via [Nomad](https://www.nomadproject.io/). The project provides templates to allow users to influence how their servers are spawned (see the [showcase](#show-case) and [recipes](#recipes) for more details.).
 
-After login users can select an image, resources and connect it with volumes (csi / host)
+After login users can select an image, resources and connect it with volumes (csi / host / ephemeral disk).
 
 ```sh
 pip install jupyterhub-nomad-spawner
 ```
+
+Requirements:
+
+- Python 3.10+
+- JupyterHub 6.x
+- Nomad 1.4+ (Nomad native service discovery) with the `docker` driver
 
 ## Show Case
 
@@ -18,7 +24,6 @@ https://user-images.githubusercontent.com/1607547/182332760-b0f96ba2-faa8-47b6-9
 TODOs:
 
 - Document setup
-- Namespace support
 
 ## Usage
 
@@ -50,7 +55,14 @@ c.NomadSpawner.datacenters = ["dc1", "dc2", "dc3"]
 c.NomadSpawner.csi_plugin_ids = ["nfs", "hostpath-plugin0"]
 c.NomadSpawner.mem_limit = "2G"
 
-c.NomadSpawner.common_images = ["jupyter/minimal-notebook:2023-06-26"]
+c.NomadSpawner.common_images = ["quay.io/jupyter/minimal-notebook:2026-10-05"]
+
+# the Nomad namespace to create the notebook jobs in (default: "default")
+c.NomadSpawner.namespace = "notebooks"
+
+# show the full options form (volumes, memory); the default is a reduced form
+# with image and datacenters only
+c.NomadSpawner.lite_form = False
 
 
 def csi_volume_parameters(spawner):
@@ -63,6 +75,8 @@ def csi_volume_parameters(spawner):
 c.NomadSpawner.csi_volume_parameters = csi_volume_parameters
 
 ```
+
+The connection to Nomad (and Consul, if used as service provider) is configured via the usual environment variables (`NOMAD_ADDR`, `NOMAD_TOKEN`, `NOMAD_NAMESPACE`, `NOMAD_CACERT`-style `NOMAD_CA_CERT`, `NOMAD_CLIENT_CERT`, `NOMAD_CLIENT_KEY`, `NOMAD_TLS_SKIP_VERIFY`, `CONSUL_HTTP_ADDR`, ...) or the corresponding `c.NomadSpawner.*` traits (`nomad_addr`, `nomad_token`, `namespace`, ...).
 
 ### Nomad Job
 
@@ -89,7 +103,7 @@ job "jupyterhub" {
             driver = "docker"
 
             config {
-                image = "mxab/jupyterhub:1"
+                image = "ghcr.io/mxab/jupyterhub-nomad-spawner:main"
                 auth_soft_fail = false
 
                 args = [
@@ -137,7 +151,7 @@ c.NomadSpawner.datacenters = ["dc1", "dc2", "dc3"]
 c.NomadSpawner.csi_plugin_ids = ["nfs", "hostpath-plugin0"]
 c.NomadSpawner.mem_limit = "2G"
 
-c.NomadSpawner.common_images = ["jupyter/minimal-notebook:2023-06-26"]
+c.NomadSpawner.common_images = ["quay.io/jupyter/minimal-notebook:2026-10-05"]
 
 
 def csi_volume_parameters(spawner):
@@ -187,6 +201,8 @@ c.NomadSpawner.csi_volume_parameters = csi_volume_parameters
 
 ```
 
+A ready to use image with the spawner (and `oauthenticator`) installed on top of the official `jupyterhub/jupyterhub` image is built from the [Dockerfile](Dockerfile) in this repository.
+
 ## Recipes
 
 By default the `jupyterhub-nomad-spawner` allows users to customize the notebook servers image, the datacenters to spawn in, as well as the memory and volume type for the allocation. While these options are sufficient in most cases, `jupyterhub` operators may wish to customize the spawner's behavior and/or restrict the notebook users customization.
@@ -228,10 +244,11 @@ By default the `jupyterhub-nomad-spawner` allows users to customize the notebook
                 service_name=self.service_name,
                 env=self.get_env(),
                 args=self.get_args(),
-                image="jupyter/minimal-notebook",
+                image="quay.io/jupyter/minimal-notebook",
                 datacenters=["dc1", "dc2"],
                 cpu=500,
                 memory=512,
+                namespace=self.namespace,
             ),
             job_template_path=self.job_template_path,
         )
@@ -249,16 +266,34 @@ By default the `jupyterhub-nomad-spawner` allows users to customize the notebook
 > [!NOTE]
 > Please be aware that if you have enabled named servers, the template should contain the {{notebookid}}.
 
-###
-
 ## Development
 
 ### Setup
 
-Get poetry: https://python-poetry.org/docs/#installation
+Requires Python 3.10+ and [Poetry](https://python-poetry.org/docs/#installation) 2.x.
 
 ```sh
-poetry install
+poetry install --with dev
+poetry run pytest
+
+# formatting, type checking and linting
+poetry run poe check
+```
+
+The unit tests compare rendered jobs and forms against the fixtures in `tests/fixtures`. After an intentional template change regenerate them with:
+
+```sh
+poetry run pytest --update-job-fixtures --update-job-options-fixtures
+```
+
+The integration tests need a local `nomad` and `consul` binary as well as Docker and are only run with `poetry run pytest --runintegration`.
+
+The pydantic models of the Nomad API in `jupyterhub_nomad_spawner/nomad/nomad_model.py` are generated from the (archived, but still accurate for the endpoints in use) [Nomad OpenAPI spec](https://github.com/hashicorp/nomad-openapi):
+
+```sh
+poetry run poe gen-nomad-model
 ```
 
 ### Release
+
+Bump `version` in `pyproject.toml` and push a `v*.*.*` tag; the release workflow builds and publishes the package to PyPI. Images for every push to `main` are published to the GitHub container registry by the Docker workflow.
